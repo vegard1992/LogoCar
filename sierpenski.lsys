@@ -1,0 +1,10 @@
+variables = "F G"
+constants = "+ -"
+seed = "F-G-G"
+ignore = ""
+rules = "(F -> F-G+F+G-F), (G -> GG)"
+
+iterations = "7"
+
+angle = "120"
+steps = "5"
