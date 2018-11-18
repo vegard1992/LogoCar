@@ -4,7 +4,7 @@ seed = "F-G-G"
 ignore = ""
 rules = "(F -> F-G+F+G-F), (G -> GG)"
 
-iterations = "7"
+iterations = "4"
 
 angle = "120"
-steps = "5"
+steps = "25"

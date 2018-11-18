@@ -219,6 +219,7 @@ def lsys_to_turtle(variables, constants, seed, translation):
     turtle_commands = [translation_rules[s] for s in seed if s in translation_rules]
 
     turtle_commands = recursion_pass(turtle_commands)
+    #turtle_commands = [i.replace("backward", "back") for i in turtle_commands]
 
     return turtle_commands
 
@@ -254,9 +255,9 @@ def test1():
     ignore = ""
     rules = "(F -> F-G+F+G-F), (G -> GG)"
 
-    result = lsys_expand_n(variables, constants, rules, ignore, seed, 3)
+    result = lsys_expand_n(variables, constants, rules, ignore, seed, 4)
 
-    translation = "(F -> forward 5), (G -> forward 5), (+ -> right 120), (- -> left 120)"
+    translation = "(F -> forward 7), (G -> forward 7), (+ -> right 120), (- -> left 120)"
     turtle_commands = lsys_to_turtle(variables, constants, result, translation)
 
     turtle_draw(turtle_commands)
@@ -298,7 +299,7 @@ def test4():
 
     result = lsys_expand_n(variables, constants, rules, ignore, seed, 6)
 
-    translation = "(F -> backward 2), (+ -> right 25), (- -> left 25), ([ -> record), (] -> unwind)"
+    translation = "(F -> backward 5), (+ -> right 25), (- -> left 25), ([ -> record), (] -> unwind)"
     turtle_commands = lsys_to_turtle(variables, constants, result, translation)
 
     turtle_draw(turtle_commands)

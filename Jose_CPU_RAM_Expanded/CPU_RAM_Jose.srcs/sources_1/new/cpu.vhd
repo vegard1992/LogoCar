@@ -45,6 +45,8 @@ end cpu;
 -- PUP: Pen up
 
 architecture arch of cpu is
+    constant mhz100: integer := 100 * 1000 * 1000;
+
     -- general instructions
 	constant LDRM: unsigned := "10100000"; -- A0H	
 	constant LDMR: unsigned := "10100001"; -- A1H 
@@ -55,6 +57,7 @@ architecture arch of cpu is
 	constant JZ: unsigned := "01111111"; -- 7FH
 	
 	constant HALT: unsigned := "11111111"; -- FFH
+	constant IWAIT: unsigned := "11011111"; -- DFH
 	
 	constant NOP: unsigned := "00000000"; -- 00H
 	
@@ -105,7 +108,10 @@ architecture arch of cpu is
     signal cio_i: std_logic_vector(7 downto 0);
     signal cdbo_i: std_logic_vector(7 downto 0);
     
-    
+    signal wait_counter: unsigned(31 downto 0);
+    signal wait_counter_next: unsigned(31 downto 0);
+
+    constant wait_cycles: integer := (mhz100 / 2);
 
 begin
 
@@ -130,6 +136,8 @@ begin
         cdbo_i <= (others => '0');
         
         f_reg(0) <= cri;
+        
+        wait_counter <= wait_counter_next;
         
         case state_reg is
             when all_0 => 					 
@@ -156,6 +164,10 @@ begin
                     state_reg <= all_0;
                 elsif (ir_reg = HALT) then
                     state_reg <= all_1;
+                elsif (ir_reg = IWAIT) then
+                    wait_counter <= (others => '0');
+                    state_reg <= all_2;
+                    
                 elsif (ir_reg = ISRZ) then
                     if (r_reg = 0) then
                         f_reg(1) <= '1';
@@ -235,7 +247,7 @@ begin
                     end if;  
                 elsif (ir_reg = TLA) then 
                     cio_i <= std_logic_vector(SMTL);
-                    cdbo_i <= std_logic_vector(unsigned(rdbi)); -- * steps_per_degree_per) / hundredpercent);
+                    cdbo_i(7 downto 0) <= rdbi(7 downto 0); -- dirty bit shift to mul by 2
                     pc_reg <= pc_reg+1;
                     if (f_reg(2) = '0') then
                         state_reg <= all_0;
@@ -245,7 +257,7 @@ begin
                     end if;                
                 elsif (ir_reg = TRA) then 
                     cio_i <= std_logic_vector(SMTR);
-                    cdbo_i <= std_logic_vector(unsigned(rdbi)); -- * steps_per_degree_per) / hundredpercent);
+                    cdbo_i(7 downto 0) <= rdbi(7 downto 0); --- dirty bit shift to mul by 2
                     pc_reg <= pc_reg+1;
                     if (f_reg(2) = '0') then
                         state_reg <= all_0;
@@ -273,7 +285,11 @@ begin
                     state_reg <= all_0;
                 end if;
             when all_2 =>
-                if (ir_reg = JMPM) then
+                if (ir_reg = IWAIT) then
+                    if (wait_counter = wait_cycles) then
+                        state_reg <= all_0;
+                    end if;
+                elsif (ir_reg = JMPM) then
                     pc_reg <= instr_data_msb & unsigned(rdbi);
                     state_reg <= all_0;
                 elsif (ir_reg = JRDY) then
@@ -295,6 +311,8 @@ begin
          end case; 
      end if;
 end process;
+
+wait_counter_next <= wait_counter + 1;
 
 ab <= std_logic_vector(pc_reg);
 rdbo <= std_logic_vector(r_reg);

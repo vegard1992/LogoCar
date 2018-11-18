@@ -11,14 +11,14 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="139200000000001fs"></ZoomEndTime>
+      <ZoomEndTime time="35400000000001fs"></ZoomEndTime>
       <Cursor1Time time="0fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="175"></NameColumnWidth>
-      <ValueColumnWidth column_width="106"></ValueColumnWidth>
+      <ValueColumnWidth column_width="94"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="14" />
+   <WVObjectSize size="16" />
    <wvobject fp_name="/top_tb/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -67,12 +67,22 @@
       <obj_property name="ElementShortName">srv</obj_property>
       <obj_property name="ObjectShortName">srv</obj_property>
    </wvobject>
-   <wvobject fp_name="/top_tb/uut/ctrl_unit/mtrl" type="logic">
-      <obj_property name="ElementShortName">mtrl</obj_property>
-      <obj_property name="ObjectShortName">mtrl</obj_property>
+   <wvobject fp_name="/top_tb/uut/ctrl_unit/mtrl" type="array">
+      <obj_property name="ElementShortName">mtrl[3:0]</obj_property>
+      <obj_property name="ObjectShortName">mtrl[3:0]</obj_property>
+      <obj_property name="isExpanded"></obj_property>
    </wvobject>
-   <wvobject fp_name="/top_tb/uut/ctrl_unit/mtrr" type="logic">
-      <obj_property name="ElementShortName">mtrr</obj_property>
-      <obj_property name="ObjectShortName">mtrr</obj_property>
+   <wvobject fp_name="/top_tb/uut/ctrl_unit/mtrr" type="array">
+      <obj_property name="ElementShortName">mtrr[3:0]</obj_property>
+      <obj_property name="ObjectShortName">mtrr[3:0]</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/uut/ctrl_unit/mtr_wave_state" type="other">
+      <obj_property name="ElementShortName">mtr_wave_state</obj_property>
+      <obj_property name="ObjectShortName">mtr_wave_state</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/uut/ctrl_unit/mtr_var_wave_state" type="other">
+      <obj_property name="ElementShortName">mtr_var_wave_state</obj_property>
+      <obj_property name="ObjectShortName">mtr_var_wave_state</obj_property>
    </wvobject>
 </wave_config>

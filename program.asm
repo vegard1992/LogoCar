@@ -1,5 +1,8 @@
-.code entry start
+.code 
+entry start
 start:
-    
-
+    SETAW
+    JMP turtle
+turtle:
+    %include "testmotors.bin"
 .data

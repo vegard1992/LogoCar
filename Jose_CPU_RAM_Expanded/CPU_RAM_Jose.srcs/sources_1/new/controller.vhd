@@ -123,12 +123,12 @@ type state_type is (
  );
 
 -- cycle timings
-constant SRV_DUTY_CYCLE: integer := 2000000;
-constant SRV_MIN_POS_CYCLES: integer := SRV_DUTY_CYCLE/20;
-constant SRV_MAX_POS_CYCLES: integer := SRV_DUTY_CYCLE/10;
+constant SRV_PWM_CYCLES: integer := 2000000;
+constant SRV_MIN_POS_CYCLES: integer := SRV_PWM_CYCLES/(18);
+constant SRV_MAX_POS_CYCLES: integer := SRV_PWM_CYCLES/(10);
 
-constant MTR_DUTY_CYCLE: integer := 200000;
-constant MTR_ON: integer := MTR_DUTY_CYCLE/4;
+constant MTR_PWM_CYCLES: integer := 200000 * 8; 
+constant MTR_SW_CYCLES: integer := MTR_PWM_CYCLES/8;
 
 -- state
 signal state: state_type;
@@ -144,18 +144,30 @@ signal srv_clock_count_next: unsigned(31 downto 0);
 signal mtr_clock_count: unsigned(31 downto 0);
 signal mtr_clock_count_next: unsigned(31 downto 0);
 
+signal mtr_state_clock_count: unsigned(31 downto 0);
+signal mtr_state_clock_count_next: unsigned(31 downto 0);
+
 -- internal waveform states
 type srv_state_type is (
  srvPUP, srvPDN
 );
 signal srv_state: srv_state_type; -- current servo position
 
-signal mtr_ticks: unsigned(7 downto 0); -- motor ticks
+signal mtr_ticks: unsigned(15 downto 0); -- motor ticks
 type mtr_state_type is (
   mtrFWD, mtrBKW, mtrLFT, mtrRGT, mtrIDLE   -- common to all instructions
  );
 signal mtr_state: mtr_state_type; -- idle, forward, left, right, backwards 
 -- (more states possible; i.e. forward with ratio)
+type mtr_wave_state_type is (
+  s0, s1, s2, s3, s4, s5, s6, s7, s8
+);
+signal mtr_wave_state: mtr_wave_state_type;
+
+type mtr_var_wave_state_type is (
+    var0, var1
+);
+signal mtr_var_wave_state: mtr_var_wave_state_type;
 
 -- output signals
 signal srv_i: std_logic;
@@ -177,6 +189,9 @@ begin
     if (reset = '1') then  
         srv_clock_count <= (others => '0');
         mtr_clock_count <= (others => '0');
+        mtr_state_clock_count <= (others => '0');
+        
+        mtr_var_wave_state <= var0;
           
         mtr_ticks <= (others => '0');
         srv_state <= srvPUP;
@@ -199,6 +214,7 @@ begin
     elsif (clk'event and clk = '1') then
         srv_clock_count <= srv_clock_count_next;
         mtr_clock_count <= mtr_clock_count_next;
+        mtr_state_clock_count <= mtr_state_clock_count_next;
         readiness_state <= NOT_READY;
         
         -- idle/queued logic
@@ -221,28 +237,28 @@ begin
             readiness <= c_not_ready;
         end if;    
         
-        -- transition
+        -- transition -> pops next instruction from queue
         if (state = MTR_NXT or state = BOTH_NXT) then
               state <= state_prev;
               mtr_ticks <= (others => '0');
               if (instr_next = SMF) then
                   mtr_state <= mtrFWD;
-                  mtr_ticks <= instr_next_data;
+                  mtr_ticks <= instr_next_data * 2;
                   state <= IDLE;
                   instr_next <= (others => '0');
               elsif(instr_next = SMB) then
                   mtr_state <= mtrBKW;
-                  mtr_ticks <= instr_next_data;
+                  mtr_ticks <= instr_next_data * 2;
                   state <= IDLE;
                   instr_next <= (others => '0');
               elsif(instr_next = SMTL) then
                   mtr_state <= mtrLFT;
-                  mtr_ticks <= instr_next_data;
+                  mtr_ticks <= instr_next_data * 2;
                   state <= IDLE;
                   instr_next <= (others => '0');
               elsif(instr_next = SMTR) then
                   mtr_state <= mtrRGT;
-                  mtr_ticks <= instr_next_data;
+                  mtr_ticks <= instr_next_data * 2;
                   state <= IDLE;
                   instr_next <= (others => '0');
               else
@@ -263,13 +279,13 @@ begin
         end if;
     
         -- servo waveforms
-        if (srv_state = srvPDN) then
+        if (srv_state = srvPUP) then
             if (unsigned(srv_clock_count) < SRV_MIN_POS_CYCLES) then -- wave is '1' for 1ms when PDN
                 srv_i <= '1';
             else
                 srv_i <= '0';
             end if;
-        elsif (srv_state = srvPUP) then
+        elsif (srv_state = srvPDN) then
             if (unsigned(srv_clock_count) < SRV_MAX_POS_CYCLES) then -- wave is '1' for 2ms when PUP
                 srv_i <= '1';
             else
@@ -277,50 +293,170 @@ begin
             end if;
         end if;
         
-        -- motor waveforms; currently just a skeleton with example waveforms
+        -- motor waveform states
+        if (mtr_state_clock_count = MTR_SW_CYCLES) then
+            case mtr_wave_state is
+                when s0=>
+                    mtr_wave_state<=s1;
+                when s1=>
+                    mtr_wave_state<=s2;
+                when s2=>
+                    mtr_wave_state<=s3;
+                when s3=>
+                    mtr_wave_state<=s4;
+                when s4=>
+                    mtr_wave_state<=s5;
+                when s5=>
+                    mtr_wave_state<=s6;
+                when s6=>
+                    mtr_wave_state<=s7;
+                when s7=>
+                    mtr_wave_state<=s0;
+                when others =>
+                    mtr_wave_state<=s8;
+             end case;
+             mtr_state_clock_count <= (others => '0');
+        end if;
+        
+        -- motor waveforms
         if (mtr_state = mtrIDLE) then
             mtrr_i <= (others => '0');
             mtrl_i <= (others => '0');
         elsif (mtr_state = mtrFWD) then
-            if(mtr_clock_count < MTR_ON) then
-                mtrr_i <= (others => '1');
-                mtrl_i <= (others => '1');
-            else
-                mtrr_i <= (others => '0');
-                mtrl_i <= (others => '0');
-            end if;
-        elsif (mtr_state = mtrBKW) then
+            case mtr_wave_state is
+                when s0 =>
+                    mtrr_i <= "1000";
+                    mtrl_i <= "1000";
+                when s1 =>
+                    mtrr_i <= "1000";
+                    mtrl_i <= "1000";
+                when s2 => 
+                    mtrr_i <= "0100";
+                    mtrl_i <= "0100";
+                when s3 =>
+                    mtrr_i <= "0100";
+                    mtrl_i <= "0100";
+                when s4 =>
+                    mtrr_i <= "0010";
+                    mtrl_i <= "0010";
+                when s5 =>
+                    mtrr_i <= "0010";
+                    mtrl_i <= "0010";
+                when s6 =>
+                    mtrr_i <= "0001";
+                    mtrl_i <= "0001";
+                when s7 =>
+                    mtrr_i <= "0001";
+                    mtrl_i <= "0001";
+                when others =>
+                    
+            end case;
 
+        elsif (mtr_state = mtrBKW) then
+            case mtr_wave_state is
+                when s7 =>
+                    mtrr_i <= "1000";
+                    mtrl_i <= "1000";
+                when s6 =>
+                    mtrr_i <= "1000";
+                    mtrl_i <= "1000";
+                when s5 => 
+                    mtrr_i <= "0100";
+                    mtrl_i <= "0100";
+                when s4 =>
+                    mtrr_i <= "0100";
+                    mtrl_i <= "0100";
+                when s3 =>
+                    mtrr_i <= "0010";
+                    mtrl_i <= "0010";
+                when s2 =>
+                    mtrr_i <= "0010";
+                    mtrl_i <= "0010";
+                when s1 =>
+                    mtrr_i <= "0001";
+                    mtrl_i <= "0001";
+                when s0 =>
+                    mtrr_i <= "0001";
+                    mtrl_i <= "0001";
+                when others =>
+                    
+            end case;
         elsif (mtr_state = mtrLFT) then
-            if(mtr_clock_count < MTR_ON) then
-                mtrr_i <= (others => '0');
-                mtrl_i <= (others => '1');
-            else
-                mtrr_i <= (others => '0');
-                mtrl_i <= (others => '0');
-            end if;        
+            case mtr_wave_state is
+                when s0 =>
+                    mtrr_i <= "1000";
+                    mtrl_i <= "0001";
+                when s1 =>
+                    mtrr_i <= "1000";
+                    mtrl_i <= "0001";
+                when s2 => 
+                    mtrr_i <= "0100";
+                    mtrl_i <= "0010";
+                when s3 =>
+                    mtrr_i <= "0100";
+                    mtrl_i <= "0010";
+                when s4 =>
+                    mtrr_i <= "0010";
+                    mtrl_i <= "0100";
+                when s5 =>
+                    mtrr_i <= "0010";
+                    mtrl_i <= "0100";
+                when s6 =>
+                    mtrr_i <= "0001";
+                    mtrl_i <= "1000";
+                when s7 =>
+                    mtrr_i <= "0001";
+                    mtrl_i <= "1000";
+                when others =>
+                    
+            end case; 
         elsif (mtr_state = mtrRGT) then
-            if(mtr_clock_count < MTR_ON) then
-                mtrr_i <= (others => '1');
-                mtrl_i <= (others => '0');
-            else
-                mtrr_i <= (others => '0');
-                mtrl_i <= (others => '0');
-            end if;
+            case mtr_wave_state is
+                when s7 =>
+                    mtrr_i <= "1000";
+                    mtrl_i <= "0001";
+                when s6 =>
+                    mtrr_i <= "1000";
+                    mtrl_i <= "0001";
+                when s5 => 
+                    mtrr_i <= "0100";
+                    mtrl_i <= "0010";
+                when s4 =>
+                    mtrr_i <= "0100";
+                    mtrl_i <= "0010";
+                when s3 =>
+                    mtrr_i <= "0010";
+                    mtrl_i <= "0100";
+                when s2 =>
+                    mtrr_i <= "0010";
+                    mtrl_i <= "0100";
+                when s1 =>
+                    mtrr_i <= "0001";
+                    mtrl_i <= "1000";
+                when s0 =>
+                    mtrr_i <= "0001";
+                    mtrl_i <= "1000";
+                when others =>
+                    
+            end case; 
         end if;
         
-        mtrr_i <= (others => '0');
-        mtrl_i <= (others => '0');
-        
         -- waveforms finished generating
-        if ((srv_clock_count) = SRV_DUTY_CYCLE) then
+        if ((srv_clock_count) = SRV_PWM_CYCLES) then
             srv_clock_count <= (others => '0');
             state_prev <= state;
             state <= SRV_NXT;
         end if;
         
-        if ((mtr_clock_count) = MTR_DUTY_CYCLE) then
+        if ((mtr_clock_count) = MTR_PWM_CYCLES) then
             mtr_clock_count <= (others => '0');
+            mtr_state_clock_count <= (others => '0');
+            mtr_wave_state <= s0;
+            if (mtr_var_wave_state = var0) then
+                mtr_var_wave_state <= var1;
+            else
+                mtr_var_wave_state <= var0;
+            end if;
             if (mtr_ticks > 0) then
                 mtr_ticks <= mtr_ticks - 1;
             else
@@ -332,11 +468,12 @@ begin
                 end if;
             end if;
         end if;    
-end if;
+    end if;
 end process;
 
 srv_clock_count_next <= srv_clock_count + 1;
 mtr_clock_count_next <= mtr_clock_count + 1;
+mtr_state_clock_count_next <= mtr_state_clock_count + 1;
 
 cro <= readiness;
 

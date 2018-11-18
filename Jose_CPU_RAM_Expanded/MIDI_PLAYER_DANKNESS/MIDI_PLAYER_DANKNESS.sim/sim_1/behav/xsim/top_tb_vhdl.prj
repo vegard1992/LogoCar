@@ -1,0 +1,9 @@
+# compile vhdl design source files
+vhdl xil_defaultlib  \
+"../../../../MIDI_PLAYER_DANKNESS.srcs/sources_1/new/cpu.vhd" \
+"../../../../MIDI_PLAYER_DANKNESS.srcs/sources_1/new/ram.vhd" \
+"../../../../MIDI_PLAYER_DANKNESS.srcs/sources_1/new/top.vhd" \
+"../../../../MIDI_PLAYER_DANKNESS.srcs/sim_1/new/top_tb.vhd" \
+
+# Do not sort compile order
+nosort

@@ -1,0 +1,10 @@
+variables = "X F"
+constants = "+ - [ ]"
+seed = "X"
+ignore = ""
+rules = "(X -> F+[[X]-X]-F[-FX]+X), (F -> FF)"
+
+iterations = "3"
+
+angle = "100"
+steps = "25"
