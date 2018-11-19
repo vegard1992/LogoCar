@@ -2,8 +2,8 @@
 # Vivado v2018.2 (64-bit)
 # SW Build 2258646 on Thu Jun 14 20:03:12 MDT 2018
 # IP Build 2256618 on Thu Jun 14 22:10:49 MDT 2018
-# Start of session at: Sun Nov 18 21:57:55 2018
-# Process ID: 6708
+# Start of session at: Mon Nov 19 23:13:09 2018
+# Process ID: 14632
 # Current directory: C:/Users/vegar/Desktop/LogoCar/Jose_CPU_RAM_Expanded/CPU_RAM_Jose.runs/synth_1
 # Command line: vivado.exe -log top.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source top.tcl
 # Log file: C:/Users/vegar/Desktop/LogoCar/Jose_CPU_RAM_Expanded/CPU_RAM_Jose.runs/synth_1/top.vds

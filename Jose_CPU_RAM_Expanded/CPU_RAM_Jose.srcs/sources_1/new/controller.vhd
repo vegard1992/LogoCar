@@ -153,7 +153,7 @@ type srv_state_type is (
 );
 signal srv_state: srv_state_type; -- current servo position
 
-signal mtr_ticks: unsigned(15 downto 0); -- motor ticks
+signal mtr_ticks: unsigned(31 downto 0); -- motor ticks
 type mtr_state_type is (
   mtrFWD, mtrBKW, mtrLFT, mtrRGT, mtrIDLE   -- common to all instructions
  );
@@ -243,22 +243,22 @@ begin
               mtr_ticks <= (others => '0');
               if (instr_next = SMF) then
                   mtr_state <= mtrFWD;
-                  mtr_ticks <= instr_next_data * 2;
+                  mtr_ticks <= "0000000000000000" & instr_next_data * 2;
                   state <= IDLE;
                   instr_next <= (others => '0');
               elsif(instr_next = SMB) then
                   mtr_state <= mtrBKW;
-                  mtr_ticks <= instr_next_data * 2;
+                  mtr_ticks <= "0000000000000000" & instr_next_data * 2;
                   state <= IDLE;
                   instr_next <= (others => '0');
               elsif(instr_next = SMTL) then
                   mtr_state <= mtrLFT;
-                  mtr_ticks <= instr_next_data * 2;
+                  mtr_ticks <= (instr_next_data * 2) * 27 / 26;
                   state <= IDLE;
                   instr_next <= (others => '0');
               elsif(instr_next = SMTR) then
                   mtr_state <= mtrRGT;
-                  mtr_ticks <= instr_next_data * 2;
+                  mtr_ticks <= (instr_next_data * 2) * 27 / 26;
                   state <= IDLE;
                   instr_next <= (others => '0');
               else
